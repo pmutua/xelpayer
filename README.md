@@ -57,8 +57,8 @@ Login as PostgreSQL Superuser postgres via psql Client
 
 ```sql
 CREATE DATABASE xelpayer;
-CREATE USER aphya WITH PASSWORD 'password';
-GRANT ALL PRIVILEGES ON DATABASE xelpayer TO aphya;
+CREATE USER postgres_user WITH PASSWORD 'password';
+GRANT ALL PRIVILEGES ON DATABASE xelpayer TO postgres_user;
 ```
 
 
