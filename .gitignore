@@ -5,7 +5,6 @@ migrations/
 *$py.class
 *.pyc
 
-pasco.txt
 
 # C extensions
 *.so
@@ -13,6 +12,12 @@ pasco.txt
 static/
 #visual code 
 .vscode/
+
+# Ngrok 
+ngrok
+
+# .env environment file
+.env
 
 # Distribution / packaging
 .Python

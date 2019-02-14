@@ -381,7 +381,6 @@ class InitiateLipaNaMpesaTransaction(generics.CreateAPIView):
             transaction_type=transaction_type,
             initiator_name=initiator_name)
 
-        print(transaction)
         serializer = TransactionSerializer(transaction)
         # Use these items for mpesa payload
         code_a = party_a.number
@@ -390,26 +389,32 @@ class InitiateLipaNaMpesaTransaction(generics.CreateAPIView):
         t_type = transaction_type.name
         time = transaction.created
 
+
         convert_time = time.strftime('%Y%m%d%H%M%S')
 
         # password = Password(code_b=code_b, time=time)
         password = Authenticate.password(PASSKEY,code_b)
 
 
-        payload = {
-            "BusinessShortCode":party_b.number,
+        request = {
+            "BusinessShortCode":str(party_b.number),
             "Password": password,
             "Timestamp":convert_time,
             "TransactionType": t_type,
-            "Amount": amount,
+            "Amount": float(amount),
             "PartyA":party_a.number,
             "PartyB": party_b.number,
-            "PhoneNumber":party_a.number,
+            "PhoneNumber":str(party_a.number),
             "CallBackURL": "https://30b4e332.ngrok.io/mpesa/online_checkout/callback/",
             "AccountReference": com_id,
             "TransactionDesc": remarks
         }
+        
+        api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+        response = requests.post(api_url, json=request, headers=AUTH_HEADER)
 
+        print (response.text)
+        # print(request)
         # handle_lipa_na_mpesa_callback_task.delay(request,ACCESS_TOKEN)
         return Response(data=serializer.data, status=status.HTTP_201_CREATED)
 
