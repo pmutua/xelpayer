@@ -388,7 +388,7 @@ class InitiateLipaNaMpesaTransaction(generics.CreateAPIView):
         com_id = command_id.name
         t_type = transaction_type.name
         time = transaction.created
-
+        
 
         convert_time = time.strftime('%Y%m%d%H%M%S')
 
@@ -410,12 +410,15 @@ class InitiateLipaNaMpesaTransaction(generics.CreateAPIView):
             "TransactionDesc": remarks
         }
         
-        api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
-        response = requests.post(api_url, json=request, headers=AUTH_HEADER)
+        # api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+        # response = requests.post(api_url, json=request, headers=AUTH_HEADER)
 
-        print (response.text)
+        # print (response.text)
         # print(request)
-        # handle_lipa_na_mpesa_callback_task.delay(request,ACCESS_TOKEN)
+        try:
+            handle_lipa_na_mpesa_callback_task(request,transaction,AUTH_HEADER)
+        except Exception as e:
+            raise e
         return Response(data=serializer.data, status=status.HTTP_201_CREATED)
 
 

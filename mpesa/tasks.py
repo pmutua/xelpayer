@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 from celery import task,shared_task
 from decimal import Decimal
-
+import json
 import requests
 from rest_framework.response import Response
 from .models import TransactionResponse
@@ -178,7 +178,7 @@ def send_transaction_reversal(request,access_token):
 
 
 @task
-def handle_lipa_na_mpesa_callback_task(request,access_token):
+def handle_lipa_na_mpesa_callback_task(request,transaction,auth_header):
 	"""
 		Process the initiate lipa na mpesa callback response
 		:param response:
@@ -231,39 +231,54 @@ def handle_lipa_na_mpesa_callback_task(request,access_token):
 		}
 	"""
 	api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
-	headers = {"Authorization": "Bearer %s" % access_token}
 
-	response = requests.post(api_url, json=request, headers=headers)
-	response_description = response['ResponseDescription']
-	originator_conversation_id = response['OriginatorConversationID ']
-	conversation_id = response['ConversationID']
-	merchant_request_id = response['MerchantRequestID']
-	checkout_request_id = response['CheckoutRequestID']
-	response_code = response['ResponseCode']
-	result_description = response['ResultDesc']
-	result_code = response['ResultCode']
-	TransactionResponse.objects.create(
-	transaction_feedback=response_description,
-	transaction=transaction,
-	originator_conversation_id=originator_conversation_id,
-	conversation_id=conversation_id,
-	merchant_request_id=merchant_request_id,
-	checkout_request_id=checkout_request_id,
-	response_code=response_code,
-	result_description=result_description,
-	result_code=result_code)
+	response = requests.post(api_url, json=request, headers=auth_header)
+	
+	response_data = response.json()
+	# print(response.__dict__)
+
+	if response.status_code ==200:
+		merchant_request_id = response_data['MerchantRequestID']
+		checkout_request_id = response_data['CheckoutRequestID']
+		response_code = response_data['ResponseCode']
+		response_description = response_data['ResponseDescription']
+		customer_message = response_data['CustomerMessage']
+		
+		print( {
+            "MerchantRequestID":merchant_request_id,
+            "CheckoutRequestID":checkout_request_id,
+            "ResponseCode":response_code ,
+            "ResponseDescription":response_description,
+            "CustomerMessage":customer_message
+        })
+		#Add is successfull boolean 
+		TransactionResponse.objects.create(
+		transaction=transaction,
+		merchant_request_id=merchant_request_id,
+		checkout_request_id=checkout_request_id,
+		response_code=response_code)
+	
+	if response.status_code ==400:
+		return response.errorCode
+		
+	
+
+	
+
+
+
 
 @task
-def send_query_lipa_na_mpesa_online_status(request,access_token):
+def send_query_lipa_na_mpesa_online_status(request,auth_header):
 	"""
 	Task to check stk push transaction status
 	"""
 	api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
-	headers = {"Authorization": "Bearer %s" % access_token}
+	# headers = {"Authorization": "Bearer %s" % access_token}
 
 	api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query"
-	headers = {"Authorization": "Bearer %s" % access_token}
-	response = requests.post(api_url, json=request, headers=headers)
+	# headers = {"Authorization": "Bearer %s" % access_token}
+	response = requests.post(api_url, json=request, headers=auth_header)
 	response_description = response['ResponseDescription']
 	originator_conversation_id = response['OriginatorConversationID ']
 	conversation_id = response['ConversationID']
@@ -272,6 +287,8 @@ def send_query_lipa_na_mpesa_online_status(request,access_token):
 	response_code = response['ResponseCode']
 	result_description = response['ResultDesc']
 	result_code = response['ResultCode']
+	# customer_message = response['CustomerMessage']
+
 	TransactionResponse.objects.create(
 	transaction_feedback=response_description,
 	transaction=transaction,
@@ -282,6 +299,8 @@ def send_query_lipa_na_mpesa_online_status(request,access_token):
 	response_code=response_code,
 	result_description=result_description,
 	result_code=result_code)
+
+
 
 
 # @shared_task(name='xelpayer.handle_online_checkout_callback')

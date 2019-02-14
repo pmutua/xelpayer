@@ -42,7 +42,7 @@ class Authenticate:
     def password(passkey,business_short_code):
         """Get password."""
         timestamp = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
-        data = str(business_short_code) +passkey+ timestamp
+        data = str(business_short_code) + passkey + timestamp
         encoded = base64.b64encode(data.encode())
         password = encoded.decode('utf-8')
         return password
