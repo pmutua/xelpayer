@@ -2,6 +2,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography import x509
 from base64 import b64encode
 import requests
+import datetime
+import base64
 # To authenticate your app and get an OAuth access token, use this code.
 # An access token expires in 3600 seconds or 1 hour
 
@@ -9,17 +11,49 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 
-def authenticate(consumer_key,consumer_secret):
-    # consumer_key = "dJjjF6lieZzA62MRlGnd5YSnBBIxcAE1"
-    # consumer_secret = "kJZcB2pDoulDOwOu"
-    api_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
+from django.conf import settings 
 
-    r = requests.get(api_URL, auth=HTTPBasicAuth(
-        consumer_key, consumer_secret))
-    data = r.json()
-    access_token = "Bearer" + ' ' + data['access_token']
 
-    return access_token
+consumer_key = settings.CONSUMER_KEY 
+consumer_secret = settings.CONSUMER_SECRET
+
+passkey = settings.LIPA_NA_MPESA_ONLINE_PASSKEY 
+
+
+
+
+class Authenticate:
+    @staticmethod
+    def access_token():
+        """Generates access token."""
+
+        api_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
+
+        r = requests.get(api_URL, auth=HTTPBasicAuth(
+            consumer_key, consumer_secret))
+      
+        data = r.json()
+    
+        access_token = "Bearer" + ' ' + data['access_token']
+
+        return access_token
+    
+    @staticmethod 
+    def password(passkey,business_short_code):
+        """Get password."""
+        timestamp = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
+        data = str(business_short_code) +passkey+ timestamp
+        encoded = base64.b64encode(data.encode())
+        password = encoded.decode('utf-8')
+        return password
+
+    @staticmethod 
+    def auth_header(access_token):
+        return  {"Authorization": access_token,
+                "Content-Type": "application/json"
+                }
+
+
 
 
 INITIATOR_PASS = "YOUR_PASSWORD"

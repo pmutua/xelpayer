@@ -26,14 +26,22 @@ class CommandID(models.Model):
         return str(self.name)
 
 
-class CompanyShortCodeOrNumber(models.Model):
-    name = models.IntegerField(null=True)
+class PhoneNumber(models.Model):
+    number = models.BigIntegerField()
 
     def __str__(self):
-        return str(self.name)
+        return str(self.number)
+
+
+class BusinessShortCodeOrNumber(models.Model):
+    number = models.BigIntegerField()
+
+    def __str__(self):
+        return str(self.number)
 
 
 class InitiatorName(models.Model):
+    """ e.g ShortCode 1"""
     name = models.CharField(max_length=200, null=True)
 
     def __str__(self):
@@ -55,23 +63,16 @@ class IdentifierType(models.Model):
 
 
 class Transaction(models.Model):
-    transaction_type = models.ForeignKey(TransactionType,
-                                         related_name='type', null=True)
-    command_id = models.ForeignKey(CommandID,
-                                   related_name='command_id', null=True)
-    identifier_type = models.ForeignKey(IdentifierType,
-                                        related_name='identifier_type', null=True)
+    transaction_type = models.ForeignKey(TransactionType,related_name='type', null=True)
+    description = models.CharField(max_length=250)
+    command_id = models.ForeignKey(CommandID,related_name='command_id', null=True)
+    identifier_type = models.ForeignKey(IdentifierType,related_name='identifier_type', null=True)
     amount = models.DecimalField(null=True, decimal_places=2, max_digits=6)
-    party_b = models.ForeignKey(CompanyShortCodeOrNumber,
-                                related_name='party_b', null=True)
-    initiator_name = models.ForeignKey(InitiatorName,
-                                       related_name='company_name', null=True)
-    party_a = models.ForeignKey(CompanyShortCodeOrNumber,
-                                related_name='party_a')
-    occasion = models.ForeignKey(Occassion,
-                                 related_name='shortcode')
-    account_reference = models.ForeignKey(CommandID,
-                                          related_name='account_reference', null=True)
+    party_b = models.ForeignKey(BusinessShortCodeOrNumber,related_name='party_b', null=True)
+    initiator_name = models.ForeignKey(InitiatorName,related_name='company_name', null=True)
+    party_a = models.ForeignKey(PhoneNumber,related_name='party_a')
+    occasion = models.ForeignKey(Occassion,related_name='shortcode',null=True,blank=True)
+    account_reference = models.ForeignKey(CommandID,related_name='account_reference', null=True)
     created = models.DateTimeField(auto_now_add=True)
 
     remarks = models.CharField(max_length=200, null=True)
@@ -109,7 +110,7 @@ class TransactionResponse(models.Model):
 
 class Registration(models.Model):
     company_code = models.ForeignKey(
-        CompanyShortCodeOrNumber, related_name='CompanyShortCodeOrNumber',
+        BusinessShortCodeOrNumber, related_name='BusinessShortCodeOrNumber',
         null=True)
     company_name = models.ForeignKey(InitiatorName,
                                      related_name='registration', null=True)
@@ -118,3 +119,4 @@ class Registration(models.Model):
 
     def __str__(self):
         return str(self.company_name)
+

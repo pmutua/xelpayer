@@ -5,6 +5,7 @@ from rest_framework import status, generics
 from rest_framework.decorators import *
 from rest_framework.renderers import *
 from rest_framework.response import Response
+from django.views.decorators.csrf import csrf_exempt
 from .models import *
 from .serializers import *
 from rest_framework.mixins import DestroyModelMixin, UpdateModelMixin
@@ -21,6 +22,15 @@ from django.http import Http404
 from .utils import *
 from .tasks import *
 
+
+from django.conf import settings 
+
+PASSKEY = settings.LIPA_NA_MPESA_ONLINE_PASSKEY 
+
+ACCESS_TOKEN = Authenticate.access_token()
+
+AUTH_HEADER = Authenticate.auth_header(ACCESS_TOKEN)
+
 class CreateBToCTransaction(APIView):
 
     def post(self, request, format=None):
@@ -28,7 +38,7 @@ class CreateBToCTransaction(APIView):
         access_token = authenticate()
         try:
             try:
-                party_a = CompanyCodeOrNumber.objects.get(
+                party_a =BusinessShortCodeOrNumber.objects.get(
                     id=request.data['company_short_code'])
                 initiator_name = InitiatorName.objects.get(
                     id=request.data['company_name'])
@@ -39,7 +49,7 @@ class CreateBToCTransaction(APIView):
                 occasion = Occasion.objects.get(id=request.data['occasion'])
                 amount = request.data['amount'],
                 remarks = request.data['remarks'],
-                party_b = CompanyCodeOrNumber.objects.get(
+                party_b =BusinessShortCodeOrNumber.objects.get(
                     id=request.data['phone_no']),
                 transaction = Transaction.objects.create(
                     amount=amount,
@@ -51,9 +61,9 @@ class CreateBToCTransaction(APIView):
                     initiator_name=initiator_name,
                     occasion=occasion)
                 initiator = encryptInitiatorPassword()
-                code_a = CompanyCodeOrNumber.objects.get(
+                code_a =BusinessShortCodeOrNumber.objects.get(
                     id=party_a).name
-                code_b = CompanyCodeOrNumber.objects.get(
+                code_b =BusinessShortCodeOrNumber.objects.get(
                     id=party_b).name
                 name = InitiatorName.objects.get(
                     id=initiator_name).name
@@ -89,7 +99,7 @@ class CreateBToBTransaction(APIView):
         access_token = authenticate()
         try:
             try:
-                party_a = CompanyCodeOrNumber.objects.get(
+                party_a =BusinessShortCodeOrNumber.objects.get(
                     id=request.data['company_short_code'])
                 initiator_name = InitiatorName.objects.get(
                     id=request.data['company_name'])
@@ -104,7 +114,7 @@ class CreateBToBTransaction(APIView):
                     id='identifier_type')
                 amount = request.data['amount'],
                 remarks = request.data['remarks'],
-                party_b = CompanyCodeOrNumber.objects.get(
+                party_b =BusinessShortCodeOrNumber.objects.get(
                     id=request.data['phone_no']),
                 transaction = Transaction.objects.create(
                     amount=amount,
@@ -158,7 +168,7 @@ class RegisterCToBUrl(APIView):
             try:
                 initiator_name = InitiatorName.objects.get(
                     id=request.data['company_name'])
-                party_b = CompanyCodeOrNumber.objects.get(
+                party_b =BusinessShortCodeOrNumber.objects.get(
                     id=request.data['phone_no']),
                 confirmation_url = request.data['confirmation_url']
                 validation_url = request.data['confirmation_url']
@@ -191,7 +201,7 @@ class CheckAccountBalance(APIView):
         access_token = authenticate()
         try:
             try:
-                party_a = CompanyCodeOrNumber.objects.get(
+                party_a =BusinessShortCodeOrNumber.objects.get(
                     id=request.data['company_short_code'])
                 initiator_name = InitiatorName.objects.get(
                     id=request.data['company_name'])
@@ -234,7 +244,7 @@ class CheckTransactionStatus(APIView):
         access_token = authenticate()
         try:
             try:
-                party_a = CompanyCodeOrNumber.objects.get(
+                party_a =BusinessShortCodeOrNumber.objects.get(
                     id=request.data['create_company_short_code_or_number'])
                 initiator_name = InitiatorName.objects.get(
                     id=request.data['company_name'])
@@ -244,7 +254,7 @@ class CheckTransactionStatus(APIView):
                     id=request.data['command_id'])
                 amount = request.data['amount'],
                 remarks = request.data['remarks'],
-                party_b = CompanyCodeOrNumber.objects.get(
+                party_b =BusinessShortCodeOrNumber.objects.get(
                     id=request.data['phone_no']),
                 transaction = Transaction.objects.create(
                     amount=amount,
@@ -288,7 +298,7 @@ class TransactionReversal(APIView):
         access_token = authenticate()
         try:
             try:
-                party_a = CompanyCodeOrNumber.objects.get(
+                party_a =BusinessShortCodeOrNumber.objects.get(
                     id=request.data['company_short_code'])
                 initiator_name = InitiatorName.objects.get(
                     id=request.data['company_name'])
@@ -298,7 +308,7 @@ class TransactionReversal(APIView):
                     id=request.data['command_id'])
                 amount = request.data['amount'],
                 remarks = request.data['remarks'],
-                party_b = CompanyCodeOrNumber.objects.get(
+                party_b =BusinessShortCodeOrNumber.objects.get(
                     id=request.data['phone_no']),
                 transaction = Transaction.objects.create(
                     amount=amount,
@@ -336,64 +346,92 @@ class TransactionReversal(APIView):
         return Response(responses, status=status.HTTP_201_CREATED)
 
 
-class InitiateLipaNaMpesaTransaction(APIView):
+class InitiateLipaNaMpesaTransaction(generics.CreateAPIView):
+    serializer_class = TransactionSerializer
+    queryset = Transaction
 
     def post(self, request, format=None):
-        # Lipa na M-Pesa Online Payment API is
-        # used to initiate a M-Pesa transaction
-        # on behalf of a customer using STK Push
-        access_token = authenticate()
-        try:
-            try:
-                party_a = CompanyCodeOrNumber.objects.get(
-                    id=request.data['company_short_code'])
-                initiator_name = InitiatorName.objects.get(
-                    id=request.data['company_name'])
-                transaction_type = TransactionType.objects.get(
-                    id=request.data['transaction_type'])
-                command_id = CommandID.objects.get(
-                    id=request.data['command_id'])
-                amount = request.data['amount'],
-                remarks = request.data['remarks'],
-                party_b = CompanyCodeOrNumber.objects.get(
-                    id=request.data['phone_no']),
-                transaction = Transaction.objects.create(
-                    amount=amount,
-                    transaction_description=remarks,
-                    party_b=party_b,
-                    Party_a=Party_a,
-                    command_id=command_id,
-                    transaction_type=transaction_type,
-                    initiator_name=initiator_name)
-                code_a = party_a.name
-                code_b = party_b.name
-                com_id = command_id.name
-                t_type = transaction_type.name
-                time = transaction.created
+        """Lipa na M-Pesa Online Payment API is used to initiate a M-Pesa transaction
+           on behalf of a customer using STK Push
+        """
+      
+        access_token = Authenticate.access_token()
+  
+        party_a = PhoneNumber.objects.get(id=request.data['party_a'])
+        
+        initiator_name = InitiatorName.objects.get(id=request.data['initiator_name'])
+        
+        transaction_type = TransactionType.objects.get(id=request.data['transaction_type'])
+        
+        command_id = CommandID.objects.get(id=request.data['command_id'])
+        
+        amount = request.data['amount']
+        
+        remarks = request.data['remarks']
+        
+        party_b = BusinessShortCodeOrNumber.objects.get(id=request.data['party_b'])
 
-            except:
-                raise Http404
-            password = Password(code_b=code_b, time=time)
+      
+        transaction = Transaction.objects.create(
+            amount=amount,
+            description=remarks,
+            party_b=party_b,
+            party_a=party_a,
+            command_id=command_id,
+            transaction_type=transaction_type,
+            initiator_name=initiator_name)
 
-            request = {
-                "BusinessShortCode": code_b,
-                "Password": password,
-                "Timestamp": time,
-                "TransactionType": t_type,
-                "Amount": amount,
-                "PartyA": code_a,
-                "PartyB": code_b,
-                "PhoneNumber": code_a,
-                "CallBackURL": "https://ip_address:port/callback",
-                "AccountReference": com_id,
-                "TransactionDesc": remarks
-            }
+        print(transaction)
+        serializer = TransactionSerializer(transaction)
+        # Use these items for mpesa payload
+        code_a = party_a.number
+        code_b = party_b.number
+        com_id = command_id.name
+        t_type = transaction_type.name
+        time = transaction.created
 
-            send_initiate_lipa_na_mpesa_online.delay(request,access_token)
-        except:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        return Response(responses, status=status.HTTP_201_CREATED)
+        convert_time = time.strftime('%Y%m%d%H%M%S')
 
+        # password = Password(code_b=code_b, time=time)
+        password = Authenticate.password(PASSKEY,code_b)
+
+
+        payload = {
+            "BusinessShortCode":party_b.number,
+            "Password": password,
+            "Timestamp":convert_time,
+            "TransactionType": t_type,
+            "Amount": amount,
+            "PartyA":party_a.number,
+            "PartyB": party_b.number,
+            "PhoneNumber":party_a.number,
+            "CallBackURL": "https://30b4e332.ngrok.io/mpesa/online_checkout/callback/",
+            "AccountReference": com_id,
+            "TransactionDesc": remarks
+        }
+
+        # handle_lipa_na_mpesa_callback_task.delay(request,ACCESS_TOKEN)
+        return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+
+
+class OnlineCheckoutCallback(APIView):
+    """
+    Handle online checkout callback
+    """
+    @csrf_exempt
+    def post(self, request, format=None):
+        """
+        process the confirmation
+        :param request:
+        :param format:
+        :return:
+        """
+        data = request.data
+        handle_lipa_na_mpesa_callback_task.apply_async(
+            args=(data,),
+            queue='online_checkout_callback'
+        )
+        return Response(dict(value='ok', key='status', detail='success'))
 
 class QueryLipaNaMpesaOnlineTransactionStatus(APIView):
 
@@ -408,7 +446,7 @@ class QueryLipaNaMpesaOnlineTransactionStatus(APIView):
                     id=request.data['transaction_response'])
                 transaction = Transaction.objects.get(
                     id=transaction_response.transaction_id)
-                code_b = CompanyCodeOrNumber.objects.get(
+                code_b =BusinessShortCodeOrNumber.objects.get(
                     id=transaction.party_b).name
                 time = transaction.created
                 checkout_request_id = transaction_response.checkout_request_id
@@ -443,20 +481,42 @@ class CreateCommandID(APIView):
         return Response(responses, status=status.HTTP_201_CREATED)
 
 
-class CreateCompanyShortCodeOrNumber(APIView):
+class PhoneNumberAPiView(generics.CreateAPIView):
+    serializer_class = PhoneNumberSerializer
+    queryset = PhoneNumber.objects.all()
 
     def post(self, request, format=None):
-        CompanyShortCodeOrNumber.objects.create(
-            name=request.data['short_code'])
-        return Response(responses, status=status.HTTP_201_CREATED)
+        try:
+            number= PhoneNumber.objects.create(number=request.data['number'])
+            serializer = PhoneNumberSerializer(number)
+        except Exception as e:
+            raise e
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class CreateInitiatorName(APIView):
-
+class CreateBusinessShortCodeOrNumber(generics.CreateAPIView):
+    serializer_class = BusinessShortCodeOrNumberSerializer
+    queryset = BusinessShortCodeOrNumber.objects.all()
     def post(self, request, format=None):
-        InitiatorName.objects.create(
-            name=request.data['initiator_name'])
-        return Response(responses, status=status.HTTP_201_CREATED)
+        try:
+            biz_code=BusinessShortCodeOrNumber.objects.create(number=request.data['business_short_code'])
+            serializer = BusinessShortCodeOrNumberSerializer(biz_code)
+        except Exception as e:
+            raise e
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class CreateInitiatorName(generics.CreateAPIView):
+    serializer_class = InitiatorNameSerializer
+    queryset = InitiatorName.objects.all()
+    
+    def post(self, request, format=None):
+        try:
+            name=InitiatorName.objects.create(name=request.data['name'])
+            serializer = InitiatorNameSerializer(name)
+        except Exception as e:
+            raise e
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class CreateTransactionType(APIView):
@@ -568,15 +628,15 @@ class CommandIDDetailAPIView(DestroyModelMixin,
 
 
 class MpesaShortCodeOrNumberListView(generics.ListAPIView):
-    serializer_class = CompanyShortCodeOrNumberSerializer
-    queryset = CompanyShortCodeOrNumber.objects.all()
+    serializer_class =BusinessShortCodeOrNumberSerializer
+    queryset =BusinessShortCodeOrNumber.objects.all()
 
     def list(self, request):
         try:
-            company_codes_or_nos = CompanyShortCodeOrNumber.objects.all()
+            company_codes_or_nos =BusinessShortCodeOrNumber.objects.all()
         except:
             raise Http404
-        serializer = CompanyShortCodeOrNumberSerializer(
+        serializer =BusinessShortCodeOrNumberSerializer(
             company_codes_or_nos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -587,20 +647,20 @@ class MpesaShortCodeOrNumberDetailAPIView(DestroyModelMixin,
 
     def get(self, request, pk, format=None):
         try:
-            companycode_or_no = CompanyShortCodeOrNumber.objects.get(pk=pk)
-        except CompanyShortCodeOrNumber.DoesNotExist:
+            companycode_or_no =BusinessShortCodeOrNumber.objects.get(pk=pk)
+        except BusinessShortCodeOrNumber.DoesNotExist:
             raise Http404
 
-        serializer = CompanyShortCodeOrNumberSerializer(companycode_or_no)
+        serializer =BusinessShortCodeOrNumberSerializer(companycode_or_no)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk, format=None):
         try:
-            companycode_or_no = CompanyShortCodeOrNumber.objects.get(pk=pk)
-        except CompanyShortCodeOrNumber.DoesNotExist:
+            companycode_or_no =BusinessShortCodeOrNumber.objects.get(pk=pk)
+        except BusinessShortCodeOrNumber.DoesNotExist:
             raise Http404
 
-        serializer = CompanyShortCodeOrNumberSerializer(
+        serializer =BusinessShortCodeOrNumberSerializer(
             companycode_or_no, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -608,8 +668,8 @@ class MpesaShortCodeOrNumberDetailAPIView(DestroyModelMixin,
 
     def delete(self, request, pk, format=None):
         try:
-            companycode_or_no = CompanyShortCodeOrNumber.objects.get(pk=pk)
-        except CompanyShortCodeOrNumber.DoesNotExist:
+            companycode_or_no =BusinessShortCodeOrNumber.objects.get(pk=pk)
+        except BusinessShortCodeOrNumber.DoesNotExist:
             raise Http404
         companycode_or_no.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

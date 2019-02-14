@@ -25,7 +25,7 @@ SECRET_KEY = '$ft9g8iytwh^8qvmzvpto(_abp95=l1$(c81o2@3$)sxa38&zv'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -104,14 +104,21 @@ CELERY_TIMEZONE = 'Africa/Nairobi'
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'xelpayer',
+#         'USER': 'aphya',
+#         'PASSWORD': 'password',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'xelpayer',
-        'USER': 'aphya',
-        'PASSWORD': 'password',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
 
@@ -152,3 +159,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+# MPESA SETTINGS 
+
+CONSUMER_KEY = "eiuhniNnw9S6Z0jBqqWASA1ZZDfxhbtW"
+CONSUMER_SECRET = "zIjFKFzJsgJLaYzb"
+
+LIPA_NA_MPESA_ONLINE_PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"

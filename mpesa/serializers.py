@@ -59,15 +59,21 @@ class InitiatorNameSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class CompanyShortCodeOrNumberSerializer(serializers.ModelSerializer):
+class PhoneNumberSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = CompanyShortCodeOrNumber
+        model = PhoneNumber
+        fields = '__all__'
+
+class BusinessShortCodeOrNumberSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = BusinessShortCodeOrNumber
         fields = '__all__'
 
 
-class MpesaCommandIdSerializer(serializers.ModelSerializer):
+class CommandIDSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = MpesaCommandId
-fields = '__all__'
+        model = CommandID
+        fields = '__all__'
