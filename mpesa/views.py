@@ -371,9 +371,11 @@ class InitiateLipaNaMpesaTransaction(generics.CreateAPIView):
         
         party_b = BusinessShortCodeOrNumber.objects.get(id=request.data['party_b'])
 
-      
+        category = Transaction.LIPA_NA_MPESA_ONLINE
+        
         transaction = Transaction.objects.create(
             amount=amount,
+            category=category,
             description=remarks,
             party_b=party_b,
             party_a=party_a,

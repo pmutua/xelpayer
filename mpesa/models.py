@@ -63,8 +63,21 @@ class IdentifierType(models.Model):
 
 
 class Transaction(models.Model):
+    B2B = "Business To Business"
+    B2C = "Busiess To Customer"
+    C2B = "Customer To Business"
+    LIPA_NA_MPESA_ONLINE = "Lipa Na Mpesa Online"
+    
+    CATEGORY_CHOICES =(
+        (B2B, 'Business To Business'),
+        (B2C, 'Busiess To Customer'),
+        (C2B, 'Customer To Business'),
+        (LIPA_NA_MPESA_ONLINE, 'Lipa Na Mpesa Online')
+
+    )
     transaction_type = models.ForeignKey(TransactionType,related_name='type', null=True)
     description = models.CharField(max_length=250)
+    category = models.CharField(max_length=250,choices=CATEGORY_CHOICES)
     command_id = models.ForeignKey(CommandID,related_name='command_id', null=True)
     identifier_type = models.ForeignKey(IdentifierType,related_name='identifier_type', null=True)
     amount = models.DecimalField(null=True, decimal_places=2, max_digits=6)

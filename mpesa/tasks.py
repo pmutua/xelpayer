@@ -263,9 +263,6 @@ def handle_lipa_na_mpesa_callback_task(request,transaction,auth_header):
 		
 	
 
-	
-
-
 
 
 @task
