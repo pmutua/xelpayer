@@ -2,134 +2,154 @@
 from __future__ import unicode_literals
 
 from django.db import models
+from mpesa.utilities.managers import AuthTokenManager
 
 
-class Occassion(models.Model):
-    """This Model will represent a class for Occassion, used in B2C query parameters.optional.
-        :type name: string
-        :param name: the name of the occassion.
+class AuthToken(models.Model):
+    """Handles AuthTokens"""
+    access_token = models.CharField(max_length=40);
+    type = models.CharField(max_length=3)
+    expires_in = models.BigIntegerField()
+    objects = AuthTokenManager()
+
+    def __str__(self):
+        return self.access_token
+
+    class Meta:
+        db_table ='tbl_access_token'
+
+
+class B2CRequest(models.Model):
     """
-    name = models.CharField(max_length=200, null=True)
-
-    def __str__(self):
-        return str(self.name)
-
-
-class CommandID(models.Model):
-    """This Model will represent a class for CommandID.
-        :type name: string
-        :param name: the name of the command Id
+    Handles B2C requests
     """
-    name = models.CharField(max_length=200, null=True)
+    id = models.BigAutoField(primary_key=True)
+    phone = models.BigIntegerField()
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
+    conversation_id = models.CharField(max_length=40, blank=True, null=True)
+    originator_conversation_id = models.CharField(max_length=40, blank=True, null=True)
+    response_code = models.CharField(max_length=5, blank=True, null=True)
+    response_description = models.TextField(blank=True, null=True)
+    request_id = models.CharField(max_length=20, blank=True, null=True)
+    error_code = models.CharField(max_length=20, blank=True, null=True)
+    error_message = models.TextField(blank=True, null=True)
+    date_added = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return str(self.name)
+        return str(self.phone)
+
+    class Meta:
+        db_table ='tbl_b2c_requests'
+        verbose_name_plural = 'B2C Requests'
 
 
-class PhoneNumber(models.Model):
-    number = models.BigIntegerField()
-
-    def __str__(self):
-        return str(self.number)
-
-
-class BusinessShortCodeOrNumber(models.Model):
-    number = models.BigIntegerField()
-
-    def __str__(self):
-        return str(self.number)
-
-
-class InitiatorName(models.Model):
-    """ e.g ShortCode 1"""
-    name = models.CharField(max_length=200, null=True)
-
-    def __str__(self):
-        return str(self.name)
-
-
-class TransactionType(models.Model):
-    name = models.CharField(max_length=200, null=True)
-
-    def __str__(self):
-        return str(self.name)
-
-
-class IdentifierType(models.Model):
-    name = models.CharField(max_length=200, null=True)
+class B2CResponse(models.Model):
+    """
+    Handles B2C Response
+    """
+    id = models.BigAutoField(primary_key=True)
+    phone = models.BigIntegerField(blank=True, null=True)
+    amount = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    conversation_id = models.CharField(max_length=40, blank=True, null=True)
+    originator_conversation_id = models.CharField(max_length=40, blank=True, null=True)
+    result_type = models.CharField(max_length=5, blank=True, null=True)
+    result_code = models.CharField(max_length=5, blank=True, null=True)
+    result_description = models.TextField(blank=True, null=True)
+    transaction_id = models.CharField(max_length=20, blank=True, null=True)
+    transaction_receipt = models.CharField(max_length=20, blank=True, null=True)
+    transaction_amount = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    working_funds = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    utility_funds = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    paid_account_funds = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    transaction_date = models.DateTimeField(blank=True, null=True)
+    mpesa_user_name = models.CharField(max_length=100, blank=True, null=True)
+    is_registered_customer = models.CharField(max_length=1, blank=True, null=True)
 
     def __str__(self):
-        return str(self.name)
+        return str(self.phone)
+
+    class Meta:
+        db_table = 'tbl_b2c_response'
+        verbose_name_plural = 'B2C Responses'
 
 
-class Transaction(models.Model):
-    B2B = "Business To Business"
-    B2C = "Busiess To Customer"
-    C2B = "Customer To Business"
-    LIPA_NA_MPESA_ONLINE = "Lipa Na Mpesa Online"
-    
-    CATEGORY_CHOICES =(
-        (B2B, 'Business To Business'),
-        (B2C, 'Busiess To Customer'),
-        (C2B, 'Customer To Business'),
-        (LIPA_NA_MPESA_ONLINE, 'Lipa Na Mpesa Online')
-
-    )
-    transaction_type = models.ForeignKey(TransactionType,related_name='type', null=True)
-    description = models.CharField(max_length=250)
-    category = models.CharField(max_length=250,choices=CATEGORY_CHOICES)
-    command_id = models.ForeignKey(CommandID,related_name='command_id', null=True)
-    identifier_type = models.ForeignKey(IdentifierType,related_name='identifier_type', null=True)
-    amount = models.DecimalField(null=True, decimal_places=2, max_digits=6)
-    party_b = models.ForeignKey(BusinessShortCodeOrNumber,related_name='party_b', null=True)
-    initiator_name = models.ForeignKey(InitiatorName,related_name='company_name', null=True)
-    party_a = models.ForeignKey(PhoneNumber,related_name='party_a')
-    occasion = models.ForeignKey(Occassion,related_name='shortcode',null=True,blank=True)
-    account_reference = models.ForeignKey(CommandID,related_name='account_reference', null=True)
-    created = models.DateTimeField(auto_now_add=True)
-
-    remarks = models.CharField(max_length=200, null=True)
-
-    def __str__(self):
-        return str(self.transaction_type)
-
-
-class TransactionResponse(models.Model):
-    # A unique numeric code generated by the M-Pesa system of the request.
-    originator_conversation_id = models.CharField(
-        max_length=200, null=True, blank=True)
-    # A response message from the M-Pesa system accompanying the response to a
-    # request.
-    response_description = models.CharField(
-        max_length=200, null=True, blank=True)
-    # A unique numeric code generated by the M-Pesa system of the response to
-    # a request.
-    conversation_id = models.CharField(max_length=200, null=True, blank=True)
-
-    transaction = models.ForeignKey(Transaction,
-                                    related_name='response', null=True)
-    merchant_request_id = models.CharField(
-        max_length=200, null=True, blank=True)
-    checkout_request_id = models.CharField(
-        max_length=200, null=True, blank=True)
-    response_code = models.CharField(max_length=200, null=True, blank=True)
-    result_description = models.CharField(
-        max_length=200, null=True, blank=True)
-    result_code = models.CharField(max_length=200, null=True, blank=True)
+class C2BRequest(models.Model):
+    """
+    Handles C2B Requests
+    """
+    id = models.BigAutoField(primary_key=True)
+    transaction_type = models.CharField(max_length=20, blank=True, null=True)
+    transaction_id = models.CharField(max_length=20, unique=True)
+    transaction_date = models.DateTimeField(blank=True, null=True)
+    amount = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    business_short_code = models.CharField(max_length=20, blank=True, null=True)
+    bill_ref_number = models.CharField(max_length=50, blank=True, null=True)
+    invoice_number = models.CharField(max_length=50, blank=True, null=True)
+    org_account_balance = models.DecimalField(max_digits=20, decimal_places=2,
+                                              blank=True, null=True, default=0.0)
+    third_party_trans_id = models.CharField(max_length=50, blank=True, null=True)
+    phone = models.BigIntegerField(blank=True, null=True)
+    first_name = models.CharField(max_length=50, blank=True, null=True)
+    middle_name = models.CharField(max_length=50, blank=True, null=True)
+    last_name = models.CharField(max_length=50, blank=True, null=True)
+    is_validated = models.BooleanField(default=False)
+    is_completed = models.BooleanField(default=False)
+    date_added = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return str(self.response_description)
+        return '{} {} {}'.format(self.first_name, self.middle_name, self.last_name)
+
+    class Meta:
+        db_table ='tbl_c2b_requests'
+        verbose_name_plural = 'C2B Requests'
+
+    @property
+    def name(self):
+        return '{} {} {}'.format(self.first_name, self.middle_name, self.last_name)
 
 
-class Registration(models.Model):
-    company_code = models.ForeignKey(
-        BusinessShortCodeOrNumber, related_name='BusinessShortCodeOrNumber',
-        null=True)
-    company_name = models.ForeignKey(InitiatorName,
-                                     related_name='registration', null=True)
-    confirmation_url = models.CharField(max_length=200, null=True, blank=True)
-    validation_url = models.CharField(max_length=200, null=True, blank=True)
+class OnlineCheckout(models.Model):
+    """
+    Handles Online Checkout
+    """
+    id = models.BigAutoField(primary_key=True)
+    phone = models.BigIntegerField()
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
+    checkout_request_id = models.CharField(max_length=50, default='')
+    account_reference = models.CharField(max_length=50, default='')
+    transaction_description = models.CharField(max_length=50, blank=True, null=True)
+    customer_message = models.CharField(max_length=100, blank=True, null=True)
+    merchant_request_id = models.CharField(max_length=50, blank=True, null=True)
+    response_code = models.CharField(max_length=5, blank=True, null=True)
+    response_description = models.CharField(max_length=100, blank=True, null=True)
+    date_added = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return str(self.company_name)
+        return str(self.phone)
 
+    class Meta:
+        db_table = 'tbl_online_checkout_requests'
+        verbose_name_plural = 'Online Checkout Requests'
+
+
+class OnlineCheckoutResponse(models.Model):
+    """
+    Handles Online Checkout Response
+    """
+    id = models.BigAutoField(primary_key=True)
+    merchant_request_id = models.CharField(max_length=50, blank=True, null=True)
+    checkout_request_id = models.CharField(max_length=50, default='')
+    result_code = models.CharField(max_length=5, blank=True, null=True)
+    result_description = models.CharField(max_length=100, blank=True, null=True)
+    mpesa_receipt_number = models.CharField(max_length=50, blank=True, null=True)
+    transaction_date = models.DateTimeField(blank=True, null=True)
+    phone = models.BigIntegerField(blank=True, null=True)
+    amount = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.phone)
+
+    class Meta:
+        db_table = 'tbl_online_checkout_responses'
+        verbose_name_plural = 'Online Checkout Responses'

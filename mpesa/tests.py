@@ -1,72 +1,168 @@
-import datetime
-from django.test import TestCase
-from rest_framework.test import APITestCase
-from django.core.urlresolvers import reverse
-from .utils import *
-# C
+from django.test import TestCase, override_settings, Client
+import requests
+from unittest import mock
 from django.conf import settings
+from mpesa.utilities.tokenizer import get_token
+from .models import B2CRequest, OnlineCheckout
+from .mpesa import Mpesa
+from .tasks import * 
+from mpesa.utilities import mocks
+from mpesa.utilities.b2c import send_b2c_request
+from mpesa.utilities.c2b import register_c2b_url
+from mpesa.utilities.lipanampesa import process_online_checkout
+from django.urls import reverse
+from mpesa.utilities import signals
+from django.db.models.signals import post_save
+from mpesa.tasks import process_b2c_call_response_task, send_b2c_request_task, \
+    call_online_checkout_task, handle_online_checkout_response_task
+from celery import chain
 
-from rest_framework.test import APIClient
-from .models import *
 
-consumer_key = settings.CONSUMER_KEY
-consumer_secret = settings.CONSUMER_SECRET
+class MockResponse:
+    """
+    MockResponse Class
+    """
 
+    def __init__(self, json_data, status_code):
+        self.json_data = json_data
+        self.status_code = status_code
 
-access_token = Authenticate.access_token()
-
-# print(access_token)
-
-auth_header = Authenticate.auth_header(access_token)
-
-print(auth_header)
+    def json(self):
+        return self.json_data
 
 
-class SetUpMd(APITestCase):
+def mock_requests_get(*args, **kwargs):
+    """
+    Mock requests get
+    :param args:
+    :param kwargs:
+    :return:
+    """
+    url = kwargs['url']
+    if url == settings.GENERATE_TOKEN_URL:
+        return MockResponse(mocks.SUCCESS_TOKEN_REQUEST, 200)
 
-    @classmethod
-    def setUp(cls):
 
-        cls.occassion = Occassion.objects.create(name="Occassion")
+def mock_requests_post(*args, **kwargs):
+    """
+    Mock requests post
+    :param args:
+    :param kwargs:
+    :return:
+    """
+    url = kwargs['url']
+    if url == settings.B2C_URL:
+        return MockResponse(mocks.SUCCESS_B2C_SEND_RESPONSE, 200)
+    elif url == settings.C2B_REGISTER_URL:
+        return MockResponse(mocks.REGISTER_URL_SUCCESS, 200)
+    elif url == settings.LIPA_NA_MPESA_ONLINE_CHECKOUT_URL:
+        return MockResponse(mocks.LIPA_NA_MPESA_ONLINE_REQUEST_RESPONSE, 200)
 
-        cls.command_id = CommandID.objects.create(name="CustomerPayBillOnline")
-        # Add Business Code
-        cls.bussiness_short_code = BusinessShortCodeOrNumber.objects.create(
-            number=174379)
 
-        cls.customer_phone = PhoneNumber.objects.create(number=254722212132)
+def post(url, data):
+    c = Client()
+    response = c.post(url, data)
+    return response.content.decode('utf-8')
 
-        cls.transaction_type = TransactionType.objects.create(name="CustomerPayBillOnline")
 
-        cls.timestamp = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
+class FetchTokenTest(TestCase):
+    """
+    Fetch Token Test
+    """
 
-        cls.command_id = CommandID.objects.create(name="CustomerPayBillOnline")
+    @mock.patch('requests.get', side_effect=mock_requests_get)
+    def test_token_is_fetched_as_expected(self, mock_get):
+        response = get_token('c2b')
+        self.assertEqual(response, mocks.SUCCESS_TOKEN_REQUEST)
+        self.assertTrue(mock_get.called)
 
-        cls.initiator_name = InitiatorName.objects.create(name="apitest361")
 
-        cls.client = APIClient()
+@mock.patch('requests.get', side_effect=mock_requests_get)
+@mock.patch('requests.post', side_effect=mock_requests_post)
+@override_settings(CELERY_ALWAYS_EAGER=True)
+class B2CMethodsTest(TestCase):
+    def setUp(self):
+        self.req = Mpesa.b2c_request(phone=254722212132, amount=100.0)
 
-    def test_can_initiate_lipa_na_mpesa_transaction(self):
-        # print(self.bussiness_short_code.id)
-        # print(self.customer_phone.id)
-        # BODY OR PAYLOAD
-        payload = {
-            "business_short_code": self.bussiness_short_code.id,
-            "initiator_name": self.initiator_name.name,
-            "transaction_type": self.transaction_type.id,
-            "TransactionType": "CustomerPayBillOnline",
-            "command_id": self.command_id.id,
-            "amount": 100.00,
-            "remarks": "174379",
-            "customer_phone_number": self.customer_phone.id
-        }
+    def test_successful_b2c_request(self, mock_post, mock_get):
+        response = send_b2c_request(int(self.req.amount), self.req.phone, self.req.id)
+        self.assertEqual(response, mocks.SUCCESS_B2C_SEND_RESPONSE)
+        self.assertTrue(mock_post.called)
 
-        # print(payload)
-        # url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest" #C2B URL
+    def test_failed_b2c_request(self, mock_post, mock_get):
+        response = send_b2c_request(int(self.req.amount), self.req.phone, self.req.id)
+        response = mocks.FAILED_B2C_SEND_RESPONSE
+        self.assertEqual(response, mocks.FAILED_B2C_SEND_RESPONSE)
+        self.assertTrue(mock_post.called)
 
-        url = reverse('mpesa:initiate_lipa_na_mpesa_online_transaction')
+    def test_b2c_result_url(self, mock_post, mock_get):
+        url = reverse('mpesa:b2c_result')
+        response = post(url, mocks.B2C_SUCCESSFUL_RESULT)
+        self.assertEqual('{"value":"ok","key":"status","detail":"success"}', response)
 
-        res = self.client.post(url, json=payload, format='json')
+    def test_b2c_timeout_url(self, mock_post, mock_get):
+        url = reverse('mpesa:b2c_timeout')
+        response = post(url, mocks.B2C_SUCCESSFUL_RESULT)
+        self.assertEqual('{"value":"ok","key":"status","detail":"success"}', response)
 
-        print(res.data["customer_phone_number"])
+    @mock.patch('mpesa.utilities.signals.handle_b2c_request_post_save', autospec=True)
+    def test_b2c__post_save_signal(self, mock_signal, mock_post, mock_get):
+        post_save.connect(mock_signal, sender=B2CRequest, dispatch_uid='test_b2c_request_post_save')
+        Mpesa.b2c_request(phone=254722212132, amount=100.0)
+        self.assertEquals(mock_signal.call_count, 1)
+        post_save.disconnect(mock_signal, sender=B2CRequest, dispatch_uid='test_b2c_request_post_save')
 
+    def test_b2c_tasks(self, mock_post, mock_get):
+        self.assertTrue(chain(send_b2c_request_task.s(100, 254722212132, 1),
+                              process_b2c_call_response_task.s(1)).apply_async())
+
+    def tearDown(self):
+        post_save.connect(signals.handle_b2c_request_post_save,
+                          sender=B2CRequest)
+
+
+@mock.patch('requests.get', side_effect=mock_requests_get)
+@mock.patch('requests.post', side_effect=mock_requests_post)
+@override_settings(CELERY_ALWAYS_EAGER=True)
+class C2BMethodTest(TestCase):
+    def test_register_c2b_url(self, mock_post, mock_get):
+        response = Mpesa.c2b_register_url()
+        self.assertEqual(mocks.REGISTER_URL_SUCCESS, response)
+
+    def setUp(self):
+        self.request = Mpesa.stk_push(phone=254722212132, amount=100.0, account_reference='Test')
+
+    def test_successful_online_checkout_response(self, mock_post, mock_get):
+        resp = process_online_checkout(self.request.phone, int(self.request.amount), 'Test', 'test')
+        self.assertEqual(mocks.LIPA_NA_MPESA_ONLINE_REQUEST_RESPONSE, resp)
+
+    def test_success_online_checkout_url(self, mock_post, mock_get):
+        url = reverse('mpesa:c2b_checkout_callback')
+        response = post(url, mocks.LIPA_NA_MPESA_ONLINE_SUCCESS_RESPONSE)
+        self.assertEqual('{"value":"ok","key":"status","detail":"success"}', response)
+
+    def test_validation_url(self, mock_post, mock_get):
+        url = reverse('mpesa:c2b_validation')
+        response = post(url, mocks.PAYBILL_RESPONSE)
+        self.assertEqual('{"value":"ok","key":"status","detail":"success"}', response)
+
+    def test_confirmation_url(self, mock_post, mock_get):
+        url = reverse('mpesa:c2b_confirmation')
+        response = post(url, mocks.PAYBILL_RESPONSE)
+        self.assertEqual('{"value":"ok","key":"status","detail":"success"}', response)
+
+    @mock.patch('mpesa.utilities.signals.handle_online_checkout_post_save', autospec=True)
+    def test_c2b_post_save_signal(self, mock_signal, mock_post, mock_get):
+        post_save.connect(mock_signal, sender=OnlineCheckout, dispatch_uid='test_online_request_post_save')
+        Mpesa.stk_push(phone=254722212132, amount=100.0, account_reference='Test')
+        self.assertEquals(mock_signal.call_count, 1)
+        post_save.disconnect(mock_signal, sender=OnlineCheckout, dispatch_uid='test_online_request_post_save')
+
+    def test_online_tasks(self, mock_post, mock_get):
+        self.assertTrue(
+            chain(call_online_checkout_task.s(254722212132, 100, '', ''),
+                  handle_online_checkout_response_task.s(1)).apply_async())
+
+    def tearDown(self):
+        post_save.connect(signals.handle_online_checkout_post_save,
+                          sender=OnlineCheckout)

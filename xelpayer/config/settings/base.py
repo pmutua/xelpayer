@@ -177,9 +177,6 @@ MPESA_B2C_CONSUMER_SECRET = ''
 MPESA_C2B_ACCESS_KEY = ''
 MPESA_C2B_CONSUMER_SECRET = ''
 
-LIPA_NA_MPESA_ONLINE_CONSUMER_KEY="eiuhniNnw9S6Z0jBqqWASA1ZZDfxhbtW"
-LIPA_NA_MPESA_ONLINE_CONSUMER_SECRET="zIjFKFzJsgJLaYzb"
-
 B2C_SECURITY_TOKEN = 'E3Lw64xJ+/ayn1StCP9nu/ObqzgPgCf1IG6JEiubn91QOxkc4u8F0h9NdgjGHaWDHYDEaWxdxqd7uh3ZBsZCrPCm+8ckz8BX/Fqu/x0jOnKzEWwUdbdbFm+hV2q5HJY/EWIq6lnJQeCahkte0TQ6OoVzKyRIUsD4F+pkIIaMkjvqK5mcFWlZQIhoodXd9oBtlo7GWbcYNOjO1+GatYCtVgvjmfWHqI5k4PV/3zjNxvIcTmlB4Ao43fRvXwkRQsvc+8QOUDb6JDO0uF0UhAtz53QLdVmMNmldRoy/nEQ+QrKheY4PhXxnwhrIkFtzWhEG8AhWZjz/Ck4Kr6ePepNEuA=='
 B2C_INITIATOR_NAME = 'testapi409'
 B2C_COMMAND_ID = 'SalaryPayment'
@@ -193,15 +190,14 @@ C2B_CONFIRMATION_URL = 'http://mpesa.ngrok.io/mpesa/c2b/confirmation'
 C2B_SHORT_CODE = '600000'
 C2B_RESPONSE_TYPE = 'Completed'
 
-LIPA_NA_MPESA_ONLINE_CHECKOUT_URL = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
-LIPA_NA_MPESA_ONLINE_CHECKOUT_CALLBACK_URL = 'https://30b4e332.ngrok.io/mpesa/online_checkout/callback/'
-LIPA_NA_MPESA_ONLINE_TRANSACTION_TYPE = 'CustomerPayBillOnline'
-LIPA_NA_MPESA_ONLINE_PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
-LIPA_NA_MPESA_ONLINE_SHORT_CODE = '174379'
+C2B_ONLINE_CHECKOUT_URL = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
+C2B_ONLINE_CHECKOUT_CALLBACK_URL = 'http://mpesa.ngrok.io/mpesa/c2b/online_checkout/callback'
+C2B_TRANSACTION_TYPE = 'CustomerPayBillOnline'
+C2B_ONLINE_PASSKEY = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'
+C2B_ONLINE_SHORT_CODE = '174379'
 
 # Urls
 GENERATE_TOKEN_URL = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
-
 B2C_URL = 'https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest'
 
 # number of seconds from the expiry we consider the token expired

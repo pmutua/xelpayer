@@ -1,386 +1,319 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from celery import task,shared_task
+from __future__ import absolute_import, unicode_literals
+
 from decimal import Decimal
-import json
-import requests
-from rest_framework.response import Response
-from .models import TransactionResponse
+
+from celery import shared_task
+
+from .models import B2CRequest, C2BRequest, OnlineCheckout, \
+    B2CResponse, OnlineCheckoutResponse
+from mpesa.utilities.lipanampesa import process_online_checkout
+from mpesa.utilities.b2c import send_b2c_request
+from celery.contrib import rdb
 
 import logging
 logger = logging.getLogger(__name__)
 
-@task
-def send_create_b2c_transaction(request,access_token):
-	"""
-	Task to send create b2c transaction request
-	"""
-	api_url = "https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest"
-	headers = {"Authorization": "Bearer %s" % access_token}
 
-	response = requests.post(api_url, json=request, headers=headers)
-	response_description = response['ResponseDescription']
-	originator_conversation_id = response['OriginatorConversationID ']
-	conversation_id = response['ConversationID']
-	merchant_request_id = response['MerchantRequestID']
-	checkout_request_id = response['CheckoutRequestID']
-	response_code = response['ResponseCode']
-	result_description = response['ResultDesc']
-	result_code = response['ResultCode']
-	TransactionResponse.objects.create(
-	transaction_feedback=response_description,
-	transaction=transaction,
-	originator_conversation_id=originator_conversation_id,
-	conversation_id=conversation_id,
-	merchant_request_id=merchant_request_id,
-	checkout_request_id=checkout_request_id,
-	response_code=response_code,
-	result_description=result_description,
-	result_code=result_code)
-
-@task
-def send_create_b2b_transaction(request,access_token):
-	"""
-	Task to send create b2b transaction request asynchronously
-	"""
-	api_url = "https://sandbox.safaricom.co.ke/mpesa/b2b/v1/paymentrequest"
-	headers = {"Authorization": "Bearer %s" % access_token}
-
-	response = requests.post(api_url, json=request, headers=headers)
-	response_description = response['ResponseDescription']
-	originator_conversation_id = response['OriginatorConversationID ']
-	conversation_id = response['ConversationID']
-	merchant_request_id = response['MerchantRequestID']
-	checkout_request_id = response['CheckoutRequestID']
-	response_code = response['ResponseCode']
-	result_description = response['ResultDesc']
-	result_code = response['ResultCode']
-	TransactionResponse.objects.create(
-	transaction_feedback=response_description,
-	transaction=transaction,
-	originator_conversation_id=originator_conversation_id,
-	conversation_id=conversation_id,
-	merchant_request_id=merchant_request_id,
-	checkout_request_id=checkout_request_id,
-	response_code=response_code,
-	result_description=result_description,
-	result_code=result_code)
-
-@task
-def send_register_c_to_b_url(request,access_token):
-	"""
-	Task to send create ctob transaction request asynchronously
-	"""
-	api_url = "https://sandbox.safaricom.co.ke/mpesa/c2b/v1/registerurl"
-	headers = {"Authorization": "Bearer %s" % access_token}
-
-	response = requests.post(api_url, json=request, headers=headers)
-	response_description = response['ResponseDescription']
-	originator_conversation_id = response['OriginatorConversationID ']
-	conversation_id = response['ConversationID']
-	merchant_request_id = response['MerchantRequestID']
-	checkout_request_id = response['CheckoutRequestID']
-	response_code = response['ResponseCode']
-	result_description = response['ResultDesc']
-	result_code = response['ResultCode']
-	TransactionResponse.objects.create(
-	transaction_feedback=response_description,
-	transaction=transaction,
-	originator_conversation_id=originator_conversation_id,
-	conversation_id=conversation_id,
-	merchant_request_id=merchant_request_id,
-	checkout_request_id=checkout_request_id,
-	response_code=response_code,
-	result_description=result_description,
-	result_code=result_code)
-
-@task
-def send_check_account_balance(request,access_token):
-	"""
-	Task to check accoubt balance asynchronously
-	"""
-	api_url = "https://sandbox.safaricom.co.ke/mpesa/accountbalance/v1/query"
-	headers = {"Authorization": "Bearer %s" % access_token}
-	response = requests.post(api_url, json=request, headers=headers)
-	response_description = response['ResponseDescription']
-	originator_conversation_id = response['OriginatorConversationID ']
-	conversation_id = response['ConversationID']
-	merchant_request_id = response['MerchantRequestID']
-	checkout_request_id = response['CheckoutRequestID']
-	response_code = response['ResponseCode']
-	result_description = response['ResultDesc']
-	result_code = response['ResultCode']
-	TransactionResponse.objects.create(
-	transaction_feedback=response_description,
-	transaction=transaction,
-	originator_conversation_id=originator_conversation_id,
-	conversation_id=conversation_id,
-	merchant_request_id=merchant_request_id,
-	checkout_request_id=checkout_request_id,
-	response_code=response_code,
-	result_description=result_description,
-	result_code=result_code)
-
-@task
-def send_check_transaction_status(request,access_token):
-	"""
-	Task to check transaction status asynchronously
-	"""
-	api_url = "https://sandbox.safaricom.co.ke/mpesa/transactionstatus/v1/query"
-	headers = {"Authorization": "Bearer %s" % access_token}
-	response = requests.post(api_url, json=request, headers=headers)
-	response_description = response['ResponseDescription']
-	originator_conversation_id = response['OriginatorConversationID ']
-	conversation_id = response['ConversationID']
-	merchant_request_id = response['MerchantRequestID']
-	checkout_request_id = response['CheckoutRequestID']
-	response_code = response['ResponseCode']
-	result_description = response['ResultDesc']
-	result_code = response['ResultCode']
-	TransactionResponse.objects.create(
-	transaction_feedback=response_description,
-	transaction=transaction,
-	originator_conversation_id=originator_conversation_id,
-	conversation_id=conversation_id,
-	merchant_request_id=merchant_request_id,
-	checkout_request_id=checkout_request_id,
-	response_code=response_code,
-	result_description=result_description,
-	result_code=result_code)
-
-@task
-def send_transaction_reversal(request,access_token):
-	"""
-	Task to send create transaction reversal request asynchronously
-	"""
-	api_url = "https://sandbox.safaricom.co.ke/mpesa/reversal/v1/request"
-	headers = {"Authorization": "Bearer %s" % access_token}
-
-	response = requests.post(api_url, json=request, headers=headers)
-	response_description = response['ResponseDescription']
-	originator_conversation_id = response['OriginatorConversationID ']
-	conversation_id = response['ConversationID']
-	merchant_request_id = response['MerchantRequestID']
-	checkout_request_id = response['CheckoutRequestID']
-	response_code = response['ResponseCode']
-	result_description = response['ResultDesc']
-	result_code = response['ResultCode']
-	TransactionResponse.objects.create(
-	transaction_feedback=response_description,
-	transaction=transaction,
-	originator_conversation_id=originator_conversation_id,
-	conversation_id=conversation_id,
-	merchant_request_id=merchant_request_id,
-	checkout_request_id=checkout_request_id,
-	response_code=response_code,
-	result_description=result_description,
-	result_code=result_code)
+@shared_task(name='core.b2c_call')
+def send_b2c_request_task(amount, phone, id):
+    """
+    task for send a b2c request
+    :param amount:
+    :param phone:
+    :param id:
+    :return:
+    """
+    return send_b2c_request(amount, phone, id)
 
 
-@task
-def handle_lipa_na_mpesa_callback_task(request,transaction,auth_header):
-	"""
-		Process the initiate lipa na mpesa callback response
-		:param response:
-		:return:
-		Accepted
-		========
-		{
-		"Body":{
-			"stkCallback":{
-			"MerchantRequestID":"19465-780693-1",
-			"CheckoutRequestID":"ws_CO_27072017154747416",
-			"ResultCode":0,
-			"ResultDesc":"The service request is processed successfully.",
-			"CallbackMetadata":{
-			"Item":[
-			{
-				"Name":"Amount",
-				"Value":1
-			},
-			{
-				"Name":"MpesaReceiptNumber",
-				"Value":"LGR7OWQX0R"
-			},
-			{
-				"Name":"Balance"
-			},
-			{
-				"Name":"TransactionDate",
-				"Value":20170727154800
-			},
-			{
-				"Name":"PhoneNumber",
-				"Value":254721566839
-			}
-			]
-			}
-			}
-		}
-		}
-		Canceled
-		=========
-		{
-		"Body":{
-			"stkCallback":{
-			"MerchantRequestID":"8555-67195-1",
-			"CheckoutRequestID":"ws_CO_27072017151044001",
-			"ResultCode":1032,
-			"ResultDesc":"[STK_CB - ]Request cancelled by user"
-			}
-		}
-	"""
-	api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
-
-	response = requests.post(api_url, json=request, headers=auth_header)
-	
-	response_data = response.json()
-	# print(response.__dict__)
-
-	if response.status_code ==200:
-		merchant_request_id = response_data['MerchantRequestID']
-		checkout_request_id = response_data['CheckoutRequestID']
-		response_code = response_data['ResponseCode']
-		response_description = response_data['ResponseDescription']
-		customer_message = response_data['CustomerMessage']
-		
-		print( {
-            "MerchantRequestID":merchant_request_id,
-            "CheckoutRequestID":checkout_request_id,
-            "ResponseCode":response_code ,
-            "ResponseDescription":response_description,
-            "CustomerMessage":customer_message
-        })
-		#Add is successfull boolean 
-		TransactionResponse.objects.create(
-		transaction=transaction,
-		merchant_request_id=merchant_request_id,
-		checkout_request_id=checkout_request_id,
-		response_code=response_code)
-	
-	if response.status_code ==400:
-		return response.errorCode
-		
-	
+@shared_task(name='core.handle_b2c_call_response')
+def process_b2c_call_response_task(response, id):
+    """
+    process the request sent back from b2c request
+    :param response:
+    :param id:
+    :return:
+    """
+    data = response
+    B2CRequest.objects.filter(pk=id).update(
+        request_id=data.get('requestId', ''),
+        error_code=data.get('errorCode', ''),
+        error_message=data.get('errorMessage', ''),
+        conversation_id=data.get('ConversationID', ''),
+        originator_conversation_id=data.get('OriginatorConversationID', ''),
+        response_code=data.get('ResponseCode', ''),
+        response_description=data.get('ResponseDescription', '')
+    )
+    rdb.set_trace()
 
 
+@shared_task(name='core.handle_b2c_result_response')
+def process_b2c_result_response_task(response):
+    """
+    Process b2c result
+    :param response:
+    :return:
+    """
+    try:
+        data = response.get('Result', '')
+        update_data = dict()
+        update_data['result_type'] = str(data.get('ResultType', ''))
+        update_data['result_code'] = str(data.get('ResultCode', ''))
+        update_data['result_description'] = data.get('ResultDesc', '')
+        update_data['transaction_id'] = data.get('TransactionID', '')
+        update_data['originator_conversation_id'] = data.get('OriginatorConversationID', '')
+        update_data['conversation_id'] = data.get('ConversationID', '')
 
-@task
-def send_query_lipa_na_mpesa_online_status(request,auth_header):
-	"""
-	Task to check stk push transaction status
-	"""
-	api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
-	# headers = {"Authorization": "Bearer %s" % access_token}
+        params = data.get('ResultParameters', {}).get('ResultParameter', {})
 
-	api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query"
-	# headers = {"Authorization": "Bearer %s" % access_token}
-	response = requests.post(api_url, json=request, headers=auth_header)
-	response_description = response['ResponseDescription']
-	originator_conversation_id = response['OriginatorConversationID ']
-	conversation_id = response['ConversationID']
-	merchant_request_id = response['MerchantRequestID']
-	checkout_request_id = response['CheckoutRequestID']
-	response_code = response['ResponseCode']
-	result_description = response['ResultDesc']
-	result_code = response['ResultCode']
-	# customer_message = response['CustomerMessage']
+        if len(params) > 0:
+            # means that we have data doe we handle that
+            for p in params:
+                key, value = p.values()
 
-	TransactionResponse.objects.create(
-	transaction_feedback=response_description,
-	transaction=transaction,
-	originator_conversation_id=originator_conversation_id,
-	conversation_id=conversation_id,
-	merchant_request_id=merchant_request_id,
-	checkout_request_id=checkout_request_id,
-	response_code=response_code,
-	result_description=result_description,
-	result_code=result_code)
+                if key == 'TransactionReceipt':
+                    update_data['transaction_receipt'] = value
+                elif key == 'TransactionAmount':
+                    update_data['transaction_amount'] = value
+                    update_data['amount'] = value
+                elif key == 'B2CWorkingAccountAvailableFunds':
+                    update_data['working_funds'] = value
+                elif key == 'B2CUtilityAccountAvailableFunds':
+                    update_data['utility_funds'] = value
+                elif key == 'B2CChargesPaidAccountAvailableFunds':
+                    update_data['paid_account_funds'] = value
+                elif key == 'TransactionCompletedDateTime':
+                    date, time = value.split(' ')
+                    day, month, year = date.split('.')
+                    trx_date = '{}-{}-{} {}'.format(year, month, day, time)
+                    update_data['transaction_date'] = trx_date
+                elif key == 'ReceiverPartyPublicName':
+                    phone, name = value.split(' - ')
+                    update_data['mpesa_user_name'] = name
+                    update_data['phone'] = int(phone)
+                elif key == 'B2CRecipientIsRegisteredCustomer':
+                    update_data['is_registered_customer'] = value
+
+        # save
+        B2CResponse.objects.create(**update_data)
+    except Exception as ex:
+        pass
 
 
+@shared_task(name='core.handle_c2b_validation')
+def process_c2b_validation_task(response):
+    """
+    Handle c2b request
+    {
+        "TransactionType": "Pay Bill",
+        "TransID": "LK631GQCSP",
+        "TransTime": "20171106225323",
+        "TransAmount": "100.00",
+        "BusinessShortCode": "600000",
+        "BillRefNumber": "Test",
+        "InvoiceNumber": "",
+        "OrgAccountBalance": "",
+        "ThirdPartyTransID": "",
+        "MSISDN": "254708374149",
+        "FirstName": "John",
+        "MiddleName": "J.",
+        "LastName": "Doe"
+    }
+    :param response:
+    :return:
+    """
+    date = response.get('TransTime', '')
+    year, month, day, hour, min, sec = date[:4], date[4:-8], date[6:-6], date[8:-4], date[10:-2], date[12:]
+    org_balance = 0.0
+    if response.get('OrgAccountBalance', ''):
+        org_balance = Decimal(response.get('OrgAccountBalance'))
+    data = dict(
+        transaction_type=response.get('TransactionType', ''),
+        transaction_id=response.get('TransID', ''),
+        transaction_date='{}-{}-{} {}:{}:{}'.format(year, month, day, hour, min, sec),
+        amount=Decimal(response.get('TransAmount', '0')),
+        business_short_code=response.get('BusinessShortCode', ''),
+        bill_ref_number=response.get('BillRefNumber', ''),
+        invoice_number=response.get('InvoiceNumber', ''),
+        org_account_balance=org_balance,
+        third_party_trans_id=response.get('ThirdPartyTransID', ''),
+        phone=int(response.get('MSISDN', '0')),
+        first_name=response.get('FirstName', ''),
+        middle_name=response.get('MiddleName', ''),
+        last_name=response.get('LastName', ''),
+        is_validated=True
+    )
+
+    C2BRequest.objects.create(**data)
 
 
-# @shared_task(name='xelpayer.handle_online_checkout_callback')
-# def handle_online_checkout_callback_task(response):
-#     """
-#     Process the callback response
-#     :param response:
-#     :return:
-#      Accepted
-#     ========
-#     {
-#       "Body":{
-# 	"stkCallback":{
-# 	  "MerchantRequestID":"19465-780693-1",
-# 	  "CheckoutRequestID":"ws_CO_27072017154747416",
-# 	  "ResultCode":0,
-# 	  "ResultDesc":"The service request is processed successfully.",
-# 	  "CallbackMetadata":{
-# 	    "Item":[
-# 	      {
-# 		"Name":"Amount",
-# 		"Value":1
-# 	      },
-# 	      {
-# 		"Name":"MpesaReceiptNumber",
-# 		"Value":"LGR7OWQX0R"
-# 	      },
-# 	      {
-# 		"Name":"Balance"
-# 	      },
-# 	      {
-# 		"Name":"TransactionDate",
-# 		"Value":20170727154800
-# 	      },
-# 	      {
-# 		"Name":"PhoneNumber",
-# 		"Value":254721566839
-# 	      }
-# 	    ]
-# 	  }
-# 	}
-#       }
-#     }
-#     Canceled
-#     =========
-#     {
-#       "Body":{
-# 	"stkCallback":{
-# 	  "MerchantRequestID":"8555-67195-1",
-# 	  "CheckoutRequestID":"ws_CO_27072017151044001",
-# 	  "ResultCode":1032,
-# 	  "ResultDesc":"[STK_CB - ]Request cancelled by user"
-# 	}
-#       }
-#     """
-#     try:
-# 	data = response.get('Body', {}).get('stkCallback', {})
-# 	update_data = dict()
-# 	update_data['result_code'] = data.get('ResultCode', '')
-# 	update_data['result_description'] = data.get('ResultDesc', '')
-# 	update_data['checkout_request_id'] = data.get('CheckoutRequestID', '')
-# 	update_data['merchant_request_id'] = data.get('MerchantRequestID', '')
+@shared_task(name='core.handle_c2b_confirmation')
+def process_c2b_confirmation_task(response):
+    """
+    Handle c2b request
+    {
+        "TransactionType": "Pay Bill",
+        "TransID": "LK631GQCSP",
+        "TransTime": "20171106225323",
+        "TransAmount": "100.00",
+        "BusinessShortCode": "600000",
+        "BillRefNumber": "Test",
+        "InvoiceNumber": "",
+        "OrgAccountBalance": "",
+        "ThirdPartyTransID": "",
+        "MSISDN": "254708374149",
+        "FirstName": "John",
+        "MiddleName": "J.",
+        "LastName": "Doe"
+    }
+    :param response:
+    :return:
+    """
+    date = response.get('TransTime', '')
+    year, month, day, hour, min, sec = date[:4], date[4:-8], date[6:-6], date[8:-4], date[10:-2], date[12:]
+    org_balance = 0.0
+    if response.get('OrgAccountBalance', ''):
+        org_balance = Decimal(response.get('OrgAccountBalance'))
 
-# 	meta_data = data.get('CallbackMetadata', {}).get('Item', {})
-# 	if len(meta_data) > 0:
-# 	    # handle the meta data
-# 	    for item in meta_data:
-# 		if len(item.values()) > 1:
-# 		    key, value = item.values()
-# 		    if key == 'MpesaReceiptNumber':
-# 			update_data['mpesa_receipt_number'] = value
-# 		    if key == 'Amount':
-# 			update_data['amount'] = Decimal(value)
-# 		    if key == 'PhoneNumber':
-# 			update_data['phone'] = int(value)
-# 		    if key == 'TransactionDate':
-# 			date = str(value)
-# 			year, month, day, hour, min, sec = date[:4], date[4:-8], date[6:-6], date[8:-4], date[10:-2], date[12:]
-# 			update_data['transaction_date'] = '{}-{}-{} {}:{}:{}'.format(year, month, day, hour, min, sec)
+    data = dict(
+        transaction_type=response.get('TransactionType', ''),
+        transaction_id=response.get('TransID', ''),
+        transaction_date='{}-{}-{} {}:{}:{}'.format(year, month, day, hour, min, sec),
+        amount=Decimal(response.get('TransAmount', '0')),
+        business_short_code=response.get('BusinessShortCode', ''),
+        bill_ref_number=response.get('BillRefNumber', ''),
+        invoice_number=response.get('InvoiceNumber', ''),
+        org_account_balance=org_balance,
+        third_party_trans_id=response.get('ThirdPartyTransID', ''),
+        phone=int(response.get('MSISDN', '0')),
+        first_name=response.get('FirstName', ''),
+        middle_name=response.get('MiddleName', ''),
+        last_name=response.get('LastName', ''),
+        is_completed=True
+    )
 
-# 	# save
-# 	OnlineCheckoutResponse.objects.create(**update_data)
-# 	logger.info(dict(updated_data=update_data))
-#     except Exception as ex:
-# 	logger.error(ex)
-# raise ValueError(str(ex))
+    try:
+        req = C2BRequest.objects.filter(transaction_id=response.get('TransID', ''))
+
+        if req:
+            C2BRequest.objects.filter(transaction_id=response.get('TransID', '')).update(is_completed=True)
+        else:
+            C2BRequest.objects.create(**data)
+    except Exception as ex:
+        pass
+
+
+@shared_task(name='core.make_online_checkout_call')
+def call_online_checkout_task(phone, amount, account_reference, transaction_desc):
+    """
+    Handle online checkout request
+    :param phone:
+    :param amount:
+    :param transaction_ref:
+    :param transaction_desc:
+    :return:
+    """
+    return process_online_checkout(phone, amount, account_reference, transaction_desc)
+
+
+@shared_task(name='core.handle_online_checkout_response')
+def handle_online_checkout_response_task(response, transaction_id):
+    """
+    Handle checkout response
+    :param response:
+    :param id:
+    :return:
+    """
+    OnlineCheckout.objects.filter(pk=transaction_id).update(
+        checkout_request_id=response.get('CheckoutRequestID', ''),
+        customer_message=response.get('CustomerMessage', ''),
+        merchant_request_id=response.get('MerchantRequestID', ''),
+        response_code=response.get('ResponseCode', ''),
+        response_description=response.get('ResponseDescription', '')
+    )
+
+
+@shared_task(name='core.handle_online_checkout_callback')
+def handle_online_checkout_callback_task(response):
+    """
+    Process the callback response
+    :param response:
+    :return:
+     Accepted
+    ========
+    {
+      "Body":{
+        "stkCallback":{
+          "MerchantRequestID":"19465-780693-1",
+          "CheckoutRequestID":"ws_CO_27072017154747416",
+          "ResultCode":0,
+          "ResultDesc":"The service request is processed successfully.",
+          "CallbackMetadata":{
+            "Item":[
+              {
+                "Name":"Amount",
+                "Value":1
+              },
+              {
+                "Name":"MpesaReceiptNumber",
+                "Value":"LGR7OWQX0R"
+              },
+              {
+                "Name":"Balance"
+              },
+              {
+                "Name":"TransactionDate",
+                "Value":20170727154800
+              },
+              {
+                "Name":"PhoneNumber",
+                "Value":254721566839
+              }
+            ]
+          }
+        }
+      }
+    }
+    Canceled
+    =========
+    {
+      "Body":{
+        "stkCallback":{
+          "MerchantRequestID":"8555-67195-1",
+          "CheckoutRequestID":"ws_CO_27072017151044001",
+          "ResultCode":1032,
+          "ResultDesc":"[STK_CB - ]Request cancelled by user"
+        }
+      }
+    """
+    try:
+        data = response.get('Body', {}).get('stkCallback', {})
+        update_data = dict()
+        update_data['result_code'] = data.get('ResultCode', '')
+        update_data['result_description'] = data.get('ResultDesc', '')
+        update_data['checkout_request_id'] = data.get('CheckoutRequestID', '')
+        update_data['merchant_request_id'] = data.get('MerchantRequestID', '')
+
+        meta_data = data.get('CallbackMetadata', {}).get('Item', {})
+        if len(meta_data) > 0:
+            # handle the meta data
+            for item in meta_data:
+                if len(item.values()) > 1:
+                    key, value = item.values()
+                    if key == 'MpesaReceiptNumber':
+                        update_data['mpesa_receipt_number'] = value
+                    if key == 'Amount':
+                        update_data['amount'] = Decimal(value)
+                    if key == 'PhoneNumber':
+                        update_data['phone'] = int(value)
+                    if key == 'TransactionDate':
+                        date = str(value)
+                        year, month, day, hour, min, sec = date[:4], date[4:-8], date[6:-6], date[8:-4], date[10:-2], date[12:]
+                        update_data['transaction_date'] = '{}-{}-{} {}:{}:{}'.format(year, month, day, hour, min, sec)
+
+        # save
+        OnlineCheckoutResponse.objects.create(**update_data)
+        logger.info(dict(updated_data=update_data))
+    except Exception as ex:
+        logger.error(ex)
+        raise ValueError(str(ex))
