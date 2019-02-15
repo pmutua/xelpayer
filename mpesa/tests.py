@@ -137,7 +137,7 @@ class C2BMethodTest(TestCase):
         self.assertEqual(mocks.LIPA_NA_MPESA_ONLINE_REQUEST_RESPONSE, resp)
 
     def test_success_online_checkout_url(self, mock_post, mock_get):
-        url = reverse('mpesa:c2b_checkout_callback')
+        url = reverse('mpesa:lipa_na_mpesa_checkout_callback')
         response = post(url, mocks.LIPA_NA_MPESA_ONLINE_SUCCESS_RESPONSE)
         self.assertEqual('{"value":"ok","key":"status","detail":"success"}', response)
 

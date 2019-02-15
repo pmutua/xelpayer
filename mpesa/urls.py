@@ -6,5 +6,5 @@ urlpatterns = [
     url('^b2c/result', B2cResult.as_view(), name='b2c_result'),
     url('^c2b/confirmation', C2bConfirmation.as_view(), name='c2b_confirmation'),
     url('^c2b/validate', C2bValidation.as_view(), name='c2b_validation'),
-    url('^lipanampesa/online_checkout/callback', OnlineCheckoutCallback.as_view(), name='lipa_na_mpesa_checkout_callback'),
+    url('^lipa_na_mpesa/online_checkout/callback', OnlineCheckoutCallback.as_view(), name='lipa_na_mpesa_checkout_callback'),
 ]
