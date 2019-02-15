@@ -279,8 +279,12 @@ Once you're done with the set up you need to be able to make calls to MPESA API'
 
 from mpesa_api.core.mpesa import Mpesa
 The Mpesa class containts static methods to intereact with the MPESA API's. They initiate the calls and also keeps track of the callbacks and the values are stored in the database for retrieval. Below are some samples
-
+```
 Mpesa.b2c_request(254700000000, 100) # starts a b2c payment
+
 Mpesa.c2b_register_url() # registers the validate and confirmation url's for b2c
+
 # starts online checkout on given number 
+
 Mpesa.stk_push(254700000000, 100, account_reference='', transaction_desc='')
+```
