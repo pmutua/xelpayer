@@ -1,5 +1,10 @@
 from django.conf.urls import url
-from mpesa.views import B2cResult, B2cTimeOut, C2bConfirmation, C2bValidation, OnlineCheckoutCallback
+from mpesa.views import (
+                        B2cResult, 
+                        B2cTimeOut, 
+                        C2bConfirmation, 
+                        C2bValidation, 
+                        OnlineCheckoutCallback)
 
 urlpatterns = [
     url('^b2c/timeout$', B2cTimeOut.as_view(), name='b2c_timeout'),

@@ -21,7 +21,6 @@ def process_online_checkout(msisdn, amount, account_reference, transaction_desc)
     headers = {"Content-Type": 'application/json',
                'Authorization': 'Bearer {}'.format(AuthToken.objects.get_token('lipanampesa'))}
     timestamp = datetime.datetime.today.strftime('%Y%m%d%H%M%S')
-    #TODO Test with convert_time = time.strftime('%Y%m%d%H%M%S')
     password = base64.b64encode(bytes('{}{}{}'.format(settings.LIPA_NA_MPESA_ONLINE_SHORT_CODE, settings.LIPA_NA_MPESA_ONLINE_PASSKEY,
                                                       timestamp), 'utf-8')).decode('utf-8')
     body = dict(
