@@ -24,7 +24,7 @@ pycparser==2.18
 pyflakes==2.1.0
 pytz==2018.5
 redis==2.10.6
-requests==2.19.1
+requests==2.32.2
 six==1.11.0
 tornado==5.1.1
 urllib3==1.23
