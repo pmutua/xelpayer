@@ -26,7 +26,7 @@ pytz==2018.5
 redis==2.10.6
 requests==2.19.1
 six==1.11.0
-tornado==5.1.1
+tornado==6.4.2
 urllib3==1.23
 vine==1.2.0
 gunicorn
